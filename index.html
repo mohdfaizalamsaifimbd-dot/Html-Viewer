@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#FFFFFF" id="themeColorMeta">
+<title>HTML Viewer — Live Preview &amp; Playground</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230A0A0A'/%3E%3Ctext x='16' y='21' font-family='monospace' font-size='13' font-weight='700' fill='%23FAFAFA' text-anchor='middle'%3E%26lt%3B/%26gt%3B%3C/text%3E%3C/svg%3E">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+
+<!-- Tailwind CSS v4 — browser build (dev-only, zero-build; see tailwind-4-docs skill) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss-browser/4.3.2/index.global.js"></script>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/dialog/dialog.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.css">
+
+<link rel="stylesheet" href="style.css">
+
+<style type="text/tailwindcss">
+  /* Map brand tokens into Tailwind's theme namespace. `inline` resolves
+     each var() at utility-generation time but keeps the reference live,
+     so bg-bg / text-text-secondary / border-border etc. all repaint
+     automatically when [data-theme] flips — no dark: variant needed. */
+  @theme inline {
+    --color-bg: var(--bg);
+    --color-surface: var(--surface);
+    --color-surface-2: var(--surface-2);
+    --color-surface-inverse: var(--surface-inverse);
+    --color-border: var(--border);
+    --color-border-strong: var(--border-strong);
+    --color-text: var(--text);
+    --color-text-secondary: var(--text-secondary);
+    --color-text-tertiary: var(--text-tertiary);
+    --color-text-inverse: var(--text-inverse);
+    --color-accent: var(--accent);
+    --color-accent-contrast: var(--accent-contrast);
+    --color-success: var(--success);
+    --color-success-bg: var(--success-bg);
+    --color-warning: var(--warning);
+    --color-warning-bg: var(--warning-bg);
+    --color-error: var(--error);
+    --color-error-bg: var(--error-bg);
+    --color-info: var(--info);
+    --color-info-bg: var(--info-bg);
+    --color-syn-tag: var(--syn-tag);
+    --color-syn-attr: var(--syn-attr);
+    --color-syn-string: var(--syn-string);
+    --color-syn-comment: var(--syn-comment);
+    --color-syn-punct: var(--syn-punct);
+
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+    /* brand radius scale overrides Tailwind's defaults 1:1 */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-xl: 20px;
+    --radius-full: 9999px;
+
+    /* brand elevation overrides Tailwind's shadow-sm/md/lg */
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.06);
+    --shadow-md: 0 4px 16px rgba(0,0,0,.08);
+    --shadow-lg: 0 12px 32px rgba(0,0,0,.12);
+
+    /* brand motion */
+    --ease-out: cubic-bezier(.16,1,.3,1);
+    --ease-standard: cubic-bezier(.4,0,.2,1);
+    --duration-fast: 120ms;
+    --duration-standard: 200ms;
+    --duration-slow: 320ms;
+  }
+
+  /* ---- base layer: a11y-safe global resets (Web Interface Guidelines) ---- */
+  @layer base {
+    html { -webkit-tap-highlight-color: transparent; }
+    body { overflow: hidden; }
+    button, a { touch-action: manipulation; }
+    ::selection { background: var(--text); color: var(--bg); }
+    .skip-link:focus { transform: translateY(0); }
+  }
+
+  /* ---- small hand-written pieces Tailwind utilities can't express cleanly ---- */
+  @layer components {
+    /* toggle switch: thumb + track, matches brand's checkbox-driven pattern */
+    .switch-track::before{
+      content:''; position:absolute; width:16px; height:16px; left:2px; top:2px;
+      background:#fff; border-radius:50%; transition:transform var(--duration-standard) var(--ease-standard);
+      box-shadow:var(--shadow-sm);
+    }
+    input:checked + .switch-track::before{ transform:translateX(14px); }
+
+    /* device / screen frame — bespoke shape + width/height spring transition */
+    .screen-frame{
+      transition: width var(--duration-slow) var(--ease-out), height var(--duration-slow) var(--ease-out), border-radius var(--duration-standard) var(--ease-standard);
+      width:960px; height:640px;
+    }
+    .screen-frame.is-desktop{ width:min(1160px,78vw); height:min(720px,74vh); border-radius:var(--radius-lg); }
+    .screen-frame.is-tablet{ width:768px; height:700px; border-radius:var(--radius-xl); }
+    .screen-frame.is-phone{ width:390px; height:760px; border-radius:26px; }
+    .screen-frame.is-tablet .screen-chrome,
+    .screen-frame.is-phone .screen-chrome{ display:none; }
+    .screen-frame.is-tablet .screen-body-frame,
+    .screen-frame.is-phone .screen-body-frame{ height:100%; }
+    .screen-frame.is-phone .notch{ display:block; }
+    .screen-frame.is-phone .home-indicator{ display:block; }
+
+    /* preview stage dot-grid pattern (brand §11 illustration) */
+    .preview-stage::before{
+      content:''; position:absolute; inset:0;
+      background-image:radial-gradient(var(--border-strong) 1px, transparent 1px);
+      background-size:18px 18px; pointer-events:none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{ animation-duration:.001ms !important; transition-duration:.001ms !important; }
+  }
+</style>
+
+
+</head>
+<body class="h-screen font-sans bg-bg text-text antialiased transition-colors duration-standard ease-standard">
+
+<a href="#editorMain" class="skip-link fixed top-2 left-2 z-[999] -translate-y-16 focus:translate-y-0 transition-transform duration-fast bg-surface-inverse text-text-inverse text-sm font-semibold px-4 py-2 rounded-md shadow-lg">Skip to editor</a>
+<h1 class="sr-only">HTML Viewer — Live Preview &amp; Playground</h1>
+
+<div id="app" class="h-screen flex flex-col">
+
+  <!-- ============================================================
+       TOPBAR
+       ============================================================ -->
+  <header class="h-15 shrink-0 flex items-center gap-4 px-6 border-b border-border bg-bg/90 backdrop-blur">
+    <a href="#" id="brandHome" class="flex items-center gap-3 shrink-0" aria-label="HTML Viewer home">
+      <span class="font-mono font-bold text-sm w-8 h-8 flex items-center justify-center bg-surface-inverse text-bg rounded-sm" aria-hidden="true">&lt;/&gt;</span>
+      <span class="flex flex-col leading-tight font-bold text-[14.5px]">HTML Viewer<em class="not-italic font-medium text-[11px] text-text-tertiary max-[860px]:hidden">Live Viewer &amp; Playground</em></span>
+    </a>
+    <span class="text-[11px] font-mono text-text-secondary bg-surface border border-border rounded-full px-2.5 py-0.5 shrink-0 max-[860px]:hidden">v1.0</span>
+
+    <div class="w-px h-5.5 bg-border shrink-0" aria-hidden="true"></div>
+
+    <div class="flex items-center gap-1.5 shrink-0">
+      <button id="btnUndo" aria-label="Undo" class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="w-4 h-4"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+      <button id="btnRedo" aria-label="Redo" class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="w-4 h-4"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
+      <button id="btnFormat" aria-label="Format code" class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="w-4 h-4"><path d="M4 6h16M4 12h10M4 18h16"/></svg></button>
+      <button id="btnMinify" aria-label="Minify code" class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="w-4 h-4"><path d="M8 3v4M16 3v4M8 21v-4M16 21v-4M3 8h4M17 8h4M3 16h4M17 16h4"/></svg></button>
+    </div>
+
+    <div class="flex-1"></div>
+
+    <div class="flex items-center gap-2 text-xs text-text-secondary font-mono shrink-0">
+      <label for="autoRunSwitch" class="cursor-pointer select-none">Auto-run</label>
+      <label class="relative w-8.5 h-5 inline-block shrink-0 cursor-pointer">
+        <input type="checkbox" id="autoRunSwitch" checked aria-label="Auto-run preview on every keystroke" class="opacity-0 w-0 h-0 absolute peer" />
+        <span class="switch-track absolute inset-0 bg-border-strong peer-checked:bg-success rounded-full cursor-pointer transition-colors duration-standard peer-focus-visible:ring-2 peer-focus-visible:ring-info peer-focus-visible:ring-offset-2"></span>
+      </label>
+    </div>
+    <button id="btnRun" class="hidden items-center justify-center gap-2 text-[13px] font-semibold px-4 py-2 rounded-md bg-accent text-accent-contrast hover:opacity-85 hover:-translate-y-px transition-all duration-fast shrink-0">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="w-3.5 h-3.5"><path d="M6 4l14 8-14 8V4z"/></svg>Run
+    </button>
+
+    <div class="flex-1"></div>
+
+    <div class="flex items-center gap-1.5 shrink-0">
+      <button id="btnCopy" aria-label="Copy output HTML" class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="w-4 h-4"><path d="M9 9h10v10H9zM5 15V5h10"/></svg></button>
+      <button id="btnUpload" aria-label="Upload files" class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="w-4 h-4"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 20h16"/></svg></button>
+      <input type="file" id="fileInput" class="hidden" multiple accept=".html,.htm,.css,.js" aria-hidden="true" tabindex="-1" />
+      <button id="btnDownload" aria-label="Download project (Ctrl S)" class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="w-4 h-4"><path d="M12 21V9m0 0-4 4m4-4 4 4M4 4h16"/></svg></button>
+    </div>
+
+    <div class="w-px h-5.5 bg-border shrink-0" aria-hidden="true"></div>
+
+    <div class="flex items-center gap-1.5 shrink-0">
+      <button id="btnTheme" aria-label="Toggle dark mode" class="icon-btn">
+        <svg class="icon-sun w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="icon-moon w-4 h-4 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/></svg>
+      </button>
+      <button id="btnSettings" aria-label="Open settings" aria-haspopup="dialog" class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="w-4 h-4"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12a7 7 0 0 0 .1 1.2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2l.5 2.6h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.07-.4.1-.8.1-1.2Z"/></svg></button>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       WORKSPACE
+       ============================================================ -->
+  <main id="editorMain" class="flex-1 flex min-h-0 relative">
+
+    <section id="editorPane" class="flex flex-col min-h-0 relative bg-bg border-r border-border" style="width:46%; min-width:280px; max-width:80%;">
+      <div class="flex items-center px-3 border-b border-border">
+        <div class="tabs flex gap-1 flex-1 min-w-0" role="tablist" aria-label="Source files">
+          <button class="tab active flex items-center gap-1.5 px-2 py-3 text-[13px] font-mono font-medium text-text border-b-2 border-text -mb-px min-w-0" data-lang="html" role="tab" id="tabbtn-html" aria-selected="true" aria-controls="host-html" tabindex="0"><span class="w-1.5 h-1.5 rounded-full bg-current shrink-0" aria-hidden="true"></span><span class="truncate">index.html</span><span class="text-[9.5px] text-text-tertiary shrink-0" id="cntHtml"></span></button>
+          <button class="tab flex items-center gap-1.5 px-2 py-3 text-[13px] font-mono font-medium text-text-tertiary hover:text-text-secondary border-b-2 border-transparent -mb-px min-w-0 transition-colors duration-fast" data-lang="css" role="tab" id="tabbtn-css" aria-selected="false" aria-controls="host-css" tabindex="-1"><span class="w-1.5 h-1.5 rounded-full bg-current opacity-50 shrink-0" aria-hidden="true"></span><span class="truncate">style.css</span><span class="text-[9.5px] text-text-tertiary shrink-0" id="cntCss"></span></button>
+          <button class="tab flex items-center gap-1.5 px-2 py-3 text-[13px] font-mono font-medium text-text-tertiary hover:text-text-secondary border-b-2 border-transparent -mb-px min-w-0 transition-colors duration-fast" data-lang="js" role="tab" id="tabbtn-js" aria-selected="false" aria-controls="host-js" tabindex="-1"><span class="w-1.5 h-1.5 rounded-full bg-current opacity-50 shrink-0" aria-hidden="true"></span><span class="truncate">script.js</span><span class="text-[9.5px] text-text-tertiary shrink-0" id="cntJs"></span></button>
+        </div>
+        <button id="btnEditorFull" aria-label="Fullscreen editor" class="icon-btn w-7.5 h-7.5 my-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="w-4 h-4"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
+      </div>
+
+      <div class="flex justify-between items-center px-4 py-2 border-b border-border text-xs text-text-secondary font-mono gap-3">
+        <span class="max-[1023px]:hidden">Editor</span>
+        <div class="flex items-center gap-2 font-sans">
+          <button id="btnSearch" class="ghost-btn-sm">Find <kbd class="font-mono text-[9.5px] bg-surface-2 text-text-tertiary rounded px-1 ml-1">⌘F</kbd></button>
+          <button id="btnWrap" aria-pressed="false" class="ghost-btn-sm">Wrap</button>
+          <div class="flex items-center gap-1.5 border border-border rounded-sm p-0.5">
+            <button id="fontDec" aria-label="Decrease font size" class="w-5 h-5 rounded text-text-secondary hover:bg-surface-2 hover:text-text text-[13px] leading-none">−</button>
+            <span id="fontVal" class="text-[11px] font-semibold w-5.5 text-center font-mono tabular-nums">13</span>
+            <button id="fontInc" aria-label="Increase font size" class="w-5 h-5 rounded text-text-secondary hover:bg-surface-2 hover:text-text text-[13px] leading-none">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="editorBody" class="flex-1 min-h-0 relative bg-bg">
+        <div class="absolute inset-0 block" id="host-html" role="tabpanel" aria-labelledby="tabbtn-html"></div>
+        <div class="absolute inset-0 hidden" id="host-css" role="tabpanel" aria-labelledby="tabbtn-css"></div>
+        <div class="absolute inset-0 hidden" id="host-js" role="tabpanel" aria-labelledby="tabbtn-js"></div>
+        <div class="upload-state absolute inset-3 border-[1.5px] border-dashed border-border-strong rounded-lg hidden flex-col items-center justify-center text-center gap-2 text-text-secondary bg-bg/85 backdrop-blur-sm z-50" id="dropZone">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="w-8.5 h-8.5 text-text-tertiary mx-auto"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 20h16"/></svg>
+          <p class="text-sm font-semibold text-text">Drag &amp; drop files here</p>
+          <p class="text-xs">Supports .html, .htm, .css, .js</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4 px-4 py-1 text-[11px] text-text-tertiary border-t border-border bg-surface font-mono tabular-nums">
+        <span>Ln <b id="statLine" class="text-text-secondary font-semibold">1</b>, Col <b id="statCol" class="text-text-secondary font-semibold">1</b></span>
+        <span><b id="statLines" class="text-text-secondary font-semibold">0</b> lines</span>
+        <span><b id="statChars" class="text-text-secondary font-semibold">0</b> chars</span>
+        <span class="flex-1"></span>
+        <span id="statLang">HTML</span>
+        <span>Indent: <b id="statIndent" class="text-text-secondary font-semibold">2</b></span>
+      </div>
+
+      <div id="console" class="shrink-0 border-t border-border bg-surface flex flex-col overflow-hidden transition-[height] duration-standard ease-standard" style="height:190px;">
+        <button id="consoleHeader" aria-expanded="true" aria-controls="consoleBody" class="h-9.5 shrink-0 flex items-center gap-2 px-4 border-b border-border font-mono text-[11.5px] text-text-tertiary text-left w-full">
+          <svg class="chev w-3.5 h-3.5 text-text-secondary transition-transform duration-fast" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          <span class="text-xs font-semibold text-text font-sans">Console</span>
+          <span class="badge bg-error-bg text-error hidden text-[11px] font-semibold px-2 py-0.5 rounded-full font-sans" id="badgeErr">0</span>
+          <span class="badge bg-warning-bg text-warning hidden text-[11px] font-semibold px-2 py-0.5 rounded-full font-sans" id="badgeWarn">0</span>
+          <span class="ml-auto flex gap-1">
+            <span id="btnClearConsole" role="button" tabindex="0" aria-label="Clear console" class="bg-bg border border-border text-text-secondary hover:text-text hover:border-border-strong text-[11.5px] px-2.5 py-1 rounded-sm font-sans">Clear</span>
+          </span>
+        </button>
+        <div class="flex-1 overflow-y-auto font-mono text-xs overscroll-contain" id="consoleBody" role="log" aria-live="polite">
+          <div class="px-4 py-6 text-center text-text-tertiary font-sans text-[12.5px]">Console output will appear here</div>
+        </div>
+      </div>
+    </section>
+
+    <div id="divider" role="separator" aria-orientation="vertical" aria-label="Resize editor and preview panels" tabindex="0" class="w-1.5 shrink-0 cursor-col-resize relative z-40 focus-visible:outline-none focus-visible:bg-info/20 group">
+      <div class="absolute top-0 bottom-0 left-0.5 w-px bg-border group-hover:bg-text-secondary transition-colors duration-fast"></div>
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-8 rounded-full bg-border-strong pointer-events-none"></div>
+    </div>
+
+    <section id="previewPane" class="flex-1 flex flex-col min-w-[220px] min-h-0 bg-surface">
+      <div class="h-15 shrink-0 flex items-center gap-3 px-4 border-b border-border bg-bg">
+        <div class="preview-devices flex gap-1 border border-border rounded-md p-0.5" role="group" aria-label="Preview device size">
+          <button class="pv-device active w-8 h-7 flex items-center justify-center rounded-[7px] bg-surface-inverse text-bg transition-colors duration-fast" data-device="desktop" aria-pressed="true" aria-label="Desktop preview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="w-3.75 h-3.75"><rect x="2" y="4" width="20" height="13" rx="1"/><path d="M8 21h8M12 17v4"/></svg></button>
+          <button class="pv-device w-8 h-7 flex items-center justify-center rounded-[7px] text-text-tertiary hover:text-text-secondary transition-colors duration-fast" data-device="tablet" aria-pressed="false" aria-label="Tablet preview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="w-3.75 h-3.75"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M12 18h.01"/></svg></button>
+          <button class="pv-device w-8 h-7 flex items-center justify-center rounded-[7px] text-text-tertiary hover:text-text-secondary transition-colors duration-fast" data-device="phone" aria-pressed="false" aria-label="Mobile preview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="w-3.75 h-3.75"><rect x="6" y="1" width="12" height="22" rx="2"/><path d="M12 18h.01"/></svg></button>
+          <button class="pv-device w-8 h-7 flex items-center justify-center rounded-[7px] text-text-tertiary hover:text-text-secondary transition-colors duration-fast" id="btnPreviewFull" aria-label="Fullscreen preview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="w-3.75 h-3.75"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
+        </div>
+        <span class="text-[11px] text-text-tertiary font-mono truncate" id="viewportLabel">Responsive · 100%</span>
+        <div class="flex-1"></div>
+        <span class="live-badge text-[10.5px] font-mono text-success bg-success-bg rounded-full px-2.5 py-1 flex items-center gap-1.5 shrink-0 transition-opacity duration-standard" id="liveBadge"><span class="w-1.5 h-1.5 rounded-full bg-success shrink-0" aria-hidden="true"></span>Live</span>
+      </div>
+
+      <div id="previewStage" class="preview-stage flex-1 relative overflow-auto flex items-start justify-center p-8">
+        <div role="alert" class="alert-banner hidden absolute top-3 left-3 right-3 z-25 shadow-md bg-error-bg text-error border border-error/30 rounded-md px-4 py-3 text-[13px] flex gap-2 items-start" id="errorBanner">
+          <strong class="font-bold shrink-0">Error —</strong><span id="errorBannerMsg" class="min-w-0 break-words"></span>
+          <button id="errorBannerClose" aria-label="Dismiss error" class="ml-auto shrink-0 opacity-60 hover:opacity-100 text-sm leading-none">✕</button>
+        </div>
+        <div role="status" class="alert-banner hidden absolute top-3 left-3 right-3 z-25 shadow-md bg-info-bg text-info border border-info/30 rounded-md px-4 py-3 text-[13px] flex gap-2 items-start" id="tipBanner">
+          <strong class="font-bold shrink-0">Tip —</strong><span class="min-w-0">drag a .html, .css or .js file anywhere on the editor to load it instantly.</span>
+          <button id="tipBannerClose" aria-label="Dismiss tip" class="ml-auto shrink-0 opacity-60 hover:opacity-100 text-sm leading-none">✕</button>
+        </div>
+
+        <div id="stageInner" class="relative z-10 origin-top transition-transform duration-standard ease-standard">
+          <div id="deviceFrame" class="screen-frame is-desktop bg-bg border border-border rounded-lg overflow-hidden shadow-md relative">
+            <div class="screen-chrome flex gap-1.5 px-4 py-2 bg-surface border-b border-border shrink-0" aria-hidden="true"><span class="w-2.25 h-2.25 rounded-full bg-border-strong"></span><span class="w-2.25 h-2.25 rounded-full bg-border-strong"></span><span class="w-2.25 h-2.25 rounded-full bg-border-strong"></span></div>
+            <div class="screen-body-frame relative w-full" style="height:calc(100% - 33px);">
+              <div class="notch hidden absolute top-3 left-1/2 -translate-x-1/2 w-27.5 h-5 bg-surface-inverse rounded-xl z-5" aria-hidden="true"></div>
+              <iframe id="previewFrame" title="Live preview of your HTML, CSS and JavaScript" class="w-full h-full border-0 block bg-white" sandbox="allow-scripts allow-modals allow-forms allow-popups"></iframe>
+              <div class="home-indicator hidden absolute bottom-4 left-1/2 -translate-x-1/2 w-25 h-1 rounded-full bg-black/20 z-5" aria-hidden="true"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="absolute right-4 bottom-4 flex items-center gap-0.5 bg-bg border border-border rounded-md p-1 shadow-md z-30">
+        <button id="zoomOut" aria-label="Zoom out" class="icon-btn w-7 h-7"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" class="w-4 h-4"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M8 11h6"/></svg></button>
+        <button id="zoomLabel" class="text-[11px] font-semibold font-mono w-10.5 text-center text-text-secondary tabular-nums" aria-label="Reset zoom to 100%">100%</button>
+        <button id="zoomIn" aria-label="Zoom in" class="icon-btn w-7 h-7"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" class="w-4 h-4"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M11 8v6M8 11h6"/></svg></button>
+        <div class="w-px h-4 bg-border mx-0.5" aria-hidden="true"></div>
+        <button id="zoomFit" class="text-[10.5px] font-semibold px-2.5 h-7 rounded-sm text-text-secondary hover:bg-surface-2 hover:text-text">Fit</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="scrim" class="fixed inset-0 bg-black/32 z-90 opacity-0 pointer-events-none transition-opacity duration-standard"></div>
+
+<!-- SETTINGS PANEL -->
+<aside id="settingsPanel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" class="fixed top-0 right-0 h-full w-85 max-w-[90vw] z-110 bg-bg border-l border-border shadow-lg translate-x-full transition-transform duration-slow ease-out flex flex-col">
+  <div class="h-15 shrink-0 flex items-center px-6 border-b border-border gap-3">
+    <h3 id="settingsTitle" class="text-[15px] font-bold">Settings</h3>
+    <div class="flex-1"></div>
+    <button id="btnCloseSettings" aria-label="Close settings" class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" class="w-4 h-4"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+  </div>
+  <div class="flex-1 overflow-y-auto overscroll-contain px-6 pb-16 pt-2">
+    <div class="mt-8">
+      <h4 class="text-[11px] uppercase tracking-wide text-text-tertiary font-semibold mb-3">Editor</h4>
+      <div class="flex items-center justify-between py-3 border-b border-border gap-4">
+        <div><label for="setFontInc" class="text-[13px] font-semibold text-text">Font size</label><div class="text-[11px] text-text-tertiary mt-0.5">Editor text size in px</div></div>
+        <div class="flex items-center gap-1.5 border border-border rounded-sm p-0.5">
+          <button id="setFontDec" aria-label="Decrease font size" class="w-5 h-5 rounded text-text-secondary hover:bg-surface-2 hover:text-text text-[13px] leading-none">−</button>
+          <span id="setFontVal" class="text-[11px] font-semibold w-5.5 text-center font-mono tabular-nums">13</span>
+          <button id="setFontInc" aria-label="Increase font size" class="w-5 h-5 rounded text-text-secondary hover:bg-surface-2 hover:text-text text-[13px] leading-none">+</button>
+        </div>
+      </div>
+      <div class="flex items-center justify-between py-3 border-b border-border gap-4">
+        <label for="setIndent" class="text-[13px] font-semibold text-text">Indentation</label>
+        <select id="setIndent" class="bg-bg border border-border text-text text-[12.5px] font-medium px-2.5 py-1.5 rounded-sm cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-info">
+          <option value="2">2 spaces</option>
+          <option value="4">4 spaces</option>
+          <option value="tab">Tab</option>
+        </select>
+      </div>
+      <div class="flex items-center justify-between py-3 border-b border-border gap-4">
+        <div><label for="setWrapSwitch" class="text-[13px] font-semibold text-text">Word wrap</label><div class="text-[11px] text-text-tertiary mt-0.5">Wrap long lines</div></div>
+        <label class="relative w-8.5 h-5 inline-block shrink-0 cursor-pointer">
+          <input type="checkbox" id="setWrapSwitch" aria-label="Word wrap" class="opacity-0 w-0 h-0 absolute peer" />
+          <span class="switch-track absolute inset-0 bg-border-strong peer-checked:bg-success rounded-full cursor-pointer transition-colors duration-standard peer-focus-visible:ring-2 peer-focus-visible:ring-info peer-focus-visible:ring-offset-2"></span>
+        </label>
+      </div>
+      <div class="flex items-center justify-between py-3 gap-4">
+        <div><label for="setAutoFormatSwitch" class="text-[13px] font-semibold text-text">Format before download</label><div class="text-[11px] text-text-tertiary mt-0.5">Auto-beautify on export</div></div>
+        <label class="relative w-8.5 h-5 inline-block shrink-0 cursor-pointer">
+          <input type="checkbox" id="setAutoFormatSwitch" aria-label="Format before download" class="opacity-0 w-0 h-0 absolute peer" />
+          <span class="switch-track absolute inset-0 bg-border-strong peer-checked:bg-success rounded-full cursor-pointer transition-colors duration-standard peer-focus-visible:ring-2 peer-focus-visible:ring-info peer-focus-visible:ring-offset-2"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="mt-8">
+      <h4 class="text-[11px] uppercase tracking-wide text-text-tertiary font-semibold mb-3">Preview</h4>
+      <div class="flex items-center justify-between py-3 gap-4">
+        <div><label for="setAutoRunSwitch" class="text-[13px] font-semibold text-text">Auto-run</label><div class="text-[11px] text-text-tertiary mt-0.5">Update preview on every keystroke</div></div>
+        <label class="relative w-8.5 h-5 inline-block shrink-0 cursor-pointer">
+          <input type="checkbox" id="setAutoRunSwitch" checked aria-label="Auto-run preview" class="opacity-0 w-0 h-0 absolute peer" />
+          <span class="switch-track absolute inset-0 bg-border-strong peer-checked:bg-success rounded-full cursor-pointer transition-colors duration-standard peer-focus-visible:ring-2 peer-focus-visible:ring-info peer-focus-visible:ring-offset-2"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="mt-8">
+      <h4 class="text-[11px] uppercase tracking-wide text-text-tertiary font-semibold mb-3">Appearance</h4>
+      <div class="flex items-center justify-between py-3 gap-4">
+        <span class="text-[13px] font-semibold text-text" id="appThemeLabel">Theme</span>
+        <div class="preview-devices flex gap-1 border border-border rounded-md p-0.5" role="group" aria-labelledby="appThemeLabel">
+          <button class="pv-device active px-3 h-7 flex items-center justify-center rounded-[7px] bg-surface-inverse text-bg text-xs font-medium transition-colors duration-fast" data-app-theme="light" aria-pressed="true">Light</button>
+          <button class="pv-device px-3 h-7 flex items-center justify-center rounded-[7px] text-text-tertiary text-xs font-medium hover:text-text-secondary transition-colors duration-fast" data-app-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-8">
+      <h4 class="text-[11px] uppercase tracking-wide text-text-tertiary font-semibold mb-3">Session</h4>
+      <div class="flex items-center justify-between py-3 border-b border-border gap-4">
+        <div><label for="setAutosaveSwitch" class="text-[13px] font-semibold text-text">Auto-save</label><div class="text-[11px] text-text-tertiary mt-0.5">Persist code to this browser</div></div>
+        <label class="relative w-8.5 h-5 inline-block shrink-0 cursor-pointer">
+          <input type="checkbox" id="setAutosaveSwitch" checked aria-label="Auto-save to this browser" class="opacity-0 w-0 h-0 absolute peer" />
+          <span class="switch-track absolute inset-0 bg-border-strong peer-checked:bg-success rounded-full cursor-pointer transition-colors duration-standard peer-focus-visible:ring-2 peer-focus-visible:ring-info peer-focus-visible:ring-offset-2"></span>
+        </label>
+      </div>
+      <div class="flex items-center justify-between py-3 gap-4">
+        <div><span class="text-[13px] font-semibold text-text">Reset workspace</span><div class="text-[11px] text-text-tertiary mt-0.5">Restore the default starter code</div></div>
+        <button id="btnReset" class="bg-surface text-text border border-border hover:border-border-strong hover:bg-surface-2 text-[12.5px] font-semibold px-3 py-1.5 rounded-md transition-colors duration-fast">Reset</button>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- COMMAND PALETTE -->
+<div id="cmdk" role="dialog" aria-modal="true" aria-label="Command palette" class="fixed top-[14%] left-1/2 -translate-x-1/2 w-140 max-w-[90vw] bg-bg border border-border-strong rounded-lg shadow-lg z-120 opacity-0 pointer-events-none scale-95 transition-all duration-fast overflow-hidden">
+  <div class="flex items-center gap-3 px-4 py-4 border-b border-border">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" class="w-4 h-4 text-text-tertiary shrink-0"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input id="cmdkInput" class="flex-1 bg-transparent border-none outline-none text-text text-sm min-w-0" placeholder="Type a command…" autocomplete="off" spellcheck="false" aria-label="Search commands" />
+    <kbd class="font-mono text-[10px] bg-surface-2 text-text-tertiary rounded px-1">esc</kbd>
+  </div>
+  <div id="cmdkList" role="listbox" class="max-h-80 overflow-y-auto overscroll-contain p-2"></div>
+</div>
+
+<div id="toastContainer" role="status" aria-live="polite" aria-atomic="true" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-120 flex flex-col gap-2 items-center pointer-events-none"></div>
+
+<!-- ============================================================
+     LIBRARIES (CDN — cdnjs only)
+     ============================================================ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closetag.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/xml-fold.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/brace-fold.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/comment-fold.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/comment/comment.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/searchcursor.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/search.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/match-highlighter.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/dialog/dialog.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/display/placeholder.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/keymap/sublime.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/2.0.3/beautify.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/2.0.3/beautify-css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/2.0.3/beautify-html.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+
+<script src="script.js"></script>
+</body>
+</html>

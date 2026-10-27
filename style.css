@@ -1,0 +1,86 @@
+/* HTML Viewer — styles: brand tokens (light/dark), CodeMirror theme, shared button styles.
+   The Tailwind @theme mapping stays inline in index.html (the browser build only reads
+   <style type="text/tailwindcss">). */
+
+/* =============================================================
+   RUNTIME DESIGN TOKENS (plain custom properties — these flip with
+   [data-theme] and feed the Tailwind @theme block below via var()).
+   Values reproduced strictly from the HTML Viewer brand guide.
+   ============================================================= */
+:root, [data-theme="light"]{
+  --bg:#FFFFFF; --surface:#FAFAFA; --surface-2:#F2F2F2;
+  --surface-inverse:#0A0A0A; --border:#E5E5E5; --border-strong:#D4D4D4;
+  --text:#0A0A0A; --text-secondary:#5C5C5C; --text-tertiary:#9A9A9A;
+  --text-inverse:#FAFAFA; --accent:#0A0A0A; --accent-contrast:#FFFFFF;
+  --success:#16A34A; --success-bg:#EAF7EE;
+  --warning:#B45309; --warning-bg:#FDF3E4;
+  --error:#DC2626; --error-bg:#FDECEC;
+  --info:#2563EB; --info-bg:#EAF0FE;
+  --syn-tag:#2563EB; --syn-attr:#B45309; --syn-string:#16A34A;
+  --syn-comment:#9A9A9A; --syn-punct:#5C5C5C;
+  color-scheme: light;
+}
+[data-theme="dark"]{
+  --bg:#0A0A0A; --surface:#121212; --surface-2:#1B1B1B;
+  --surface-inverse:#FAFAFA; --border:#262626; --border-strong:#333333;
+  --text:#FAFAFA; --text-secondary:#A3A3A3; --text-tertiary:#707070;
+  --text-inverse:#0A0A0A; --accent:#FAFAFA; --accent-contrast:#0A0A0A;
+  --success:#4ADE80; --success-bg:#122019;
+  --warning:#FBBF24; --warning-bg:#211A0D;
+  --error:#F87171; --error-bg:#231313;
+  --info:#60A5FA; --info-bg:#101B2C;
+  --syn-tag:#60A5FA; --syn-attr:#FBBF24; --syn-string:#4ADE80;
+  --syn-comment:#707070; --syn-punct:#A3A3A3;
+  color-scheme: dark;
+}
+
+/* =============================================================
+   CodeMirror theme — built entirely from brand syntax tokens so
+   highlighting auto-adapts between light/dark with zero extra files.
+   (kept as plain CSS: CodeMirror targets internal classes Tailwind
+   utilities can't reach without arbitrary-property soup.)
+   ============================================================= */
+.CodeMirror{ height:100% !important; font-family:var(--font-mono) !important; padding-top:6px; }
+.CodeMirror-scroll{ overscroll-behavior: contain; }
+.cm-s-brand.CodeMirror{background:var(--bg); color:var(--text);}
+.cm-s-brand .CodeMirror-gutters{background:var(--surface); border-right:1px solid var(--border);}
+.cm-s-brand .CodeMirror-linenumber{color:var(--text-tertiary); font-size:11.5px;}
+.cm-s-brand .CodeMirror-cursor{border-left:1.5px solid var(--text);}
+.cm-s-brand .CodeMirror-activeline-background{background:var(--surface);}
+.cm-s-brand .CodeMirror-selected{background:var(--surface-2) !important;}
+.cm-s-brand .CodeMirror-matchingbracket{color:var(--info) !important; text-decoration:underline;}
+.cm-s-brand .cm-keyword{color:var(--syn-attr); font-weight:600;}
+.cm-s-brand .cm-atom{color:var(--syn-attr);}
+.cm-s-brand .cm-number{color:var(--syn-string);}
+.cm-s-brand .cm-def,.cm-s-brand .cm-variable{color:var(--text);}
+.cm-s-brand .cm-variable-2,.cm-s-brand .cm-property{color:var(--syn-tag);}
+.cm-s-brand .cm-operator{color:var(--syn-punct);}
+.cm-s-brand .cm-string,.cm-s-brand .cm-string-2{color:var(--syn-string);}
+.cm-s-brand .cm-comment{color:var(--syn-comment); font-style:italic;}
+.cm-s-brand .cm-tag{color:var(--syn-tag);}
+.cm-s-brand .cm-attribute{color:var(--syn-attr);}
+.cm-s-brand .cm-bracket,.cm-s-brand .cm-punctuation{color:var(--syn-punct);}
+.cm-s-brand .cm-meta,.cm-s-brand .cm-qualifier{color:var(--text-tertiary);}
+.cm-s-brand .CodeMirror-foldgutter-open,.cm-s-brand .CodeMirror-foldgutter-folded{color:var(--text-tertiary);}
+.cm-s-brand .cm-searching{background:var(--warning-bg);}
+.CodeMirror-dialog{background:var(--surface); border-top:1px solid var(--border); color:var(--text); font-family:var(--font-sans, Inter, sans-serif); font-size:12.5px; padding:8px 12px;}
+.CodeMirror-dialog input{background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:4px 8px;}
+::-webkit-scrollbar{width:10px; height:10px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border-strong); border-radius:8px; border:2px solid transparent; background-clip:padding-box;}
+
+  /* tiny utility classes reused by many icon buttons — defined once to
+     keep the markup above from repeating the same 6 classes everywhere */
+  .icon-btn{ width:34px; height:34px; display:flex; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:var(--radius-md); background:var(--surface); color:var(--text-secondary); transition:background var(--duration-fast) var(--ease-standard), border-color var(--duration-fast), color var(--duration-fast), transform var(--duration-fast); touch-action:manipulation; }
+  .icon-btn:hover{ color:var(--text); border-color:var(--border-strong); }
+  .icon-btn:active{ transform:scale(.94); }
+  .icon-btn:focus-visible{ outline:2px solid var(--info); outline-offset:2px; }
+  .icon-btn.active{ background:var(--surface-inverse); color:var(--bg); border-color:transparent; }
+  .icon-btn:disabled{ opacity:.35; pointer-events:none; }
+  .ghost-btn-sm{ background:none; border:1px solid var(--border); color:var(--text-secondary); font-size:12px; padding:5px 10px; border-radius:var(--radius-sm); transition:all var(--duration-fast) linear; touch-action:manipulation; }
+  .ghost-btn-sm:hover{ color:var(--text); border-color:var(--border-strong); }
+  .ghost-btn-sm:focus-visible{ outline:2px solid var(--info); outline-offset:2px; }
+  .ghost-btn-sm.active{ background:var(--surface-inverse); color:var(--bg); border-color:transparent; }
+  #cmdkInput:focus-visible{ outline:none; }
+  .tab:focus-visible, .pv-device:focus-visible, #zoomLabel:focus-visible{ outline:2px solid var(--info); outline-offset:2px; }
+  #consoleHeader:focus-visible{ outline:2px solid var(--info); outline-offset:-2px; }
